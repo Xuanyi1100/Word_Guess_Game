@@ -62,6 +62,7 @@
     <Compile Include="Helper\AppConfigManager.cs" />
     <Compile Include="Helper\RelayCommand.cs" />
     <Compile Include="Models\ConnectionSettings.cs" />
+    <Compile Include="Models\GameData.cs" />
     <Compile Include="ViewModel\ConnectViewModel.cs" />
     <Compile Include="ViewModel\GameViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />

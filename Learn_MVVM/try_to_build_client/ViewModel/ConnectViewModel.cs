@@ -78,7 +78,13 @@ namespace try_to_build_client.ViewModels
             {
                 _connectionSettings.SaveSettings();
                 // After successful connection, navigate to the game page
-                _navigationAction.Invoke(new gamePage());          
+                /* When navigate from connectPage to gamePage,
+                 * the ContentControl in the MainWindow is updated with the new gamePage, 
+                 * but without a correct DataContext, the gamePage won't know which ViewModel to connect to. 
+                 * This results in the view model constructor not being called.*/
+                // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
+                var gameViewModel = new GameViewModel(_navigationAction);
+                _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });          
             }
             catch (Exception ex)
             {
