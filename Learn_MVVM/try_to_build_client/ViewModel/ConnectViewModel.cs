@@ -6,6 +6,8 @@ using System.Windows.Input;
 using System.Windows.Controls;
 using try_to_build_client.Views;
 using try_to_build_client.Models;
+using System.Threading.Tasks;
+using try_to_build_client.Helpers;
 
 namespace try_to_build_client.ViewModels
 {
@@ -14,12 +16,20 @@ namespace try_to_build_client.ViewModels
         private string _connectionStatus;
         private Action<UserControl> _navigationAction;
         private ConnectionSettings _connectionSettings;
+        private TcpClientService _tcpClientService;
 
         public ConnectViewModel(Action<UserControl> navigationAction)
         {
             _navigationAction = navigationAction;
-            ConnectCommand = new RelayCommand(Connect);
+
+            ConnectCommand = new RelayCommand(async () => await Connect());
             _connectionSettings = new ConnectionSettings();
+            _tcpClientService = new TcpClientService();
+            _tcpClientService.OnConnectionError += OnConnectionError;
+        }
+        private void OnConnectionError(string message)
+        {
+            ConnectionStatus = message;
         }
 
         public string Username
@@ -66,7 +76,7 @@ namespace try_to_build_client.ViewModels
         public ICommand ConnectCommand { get; private set; }
 
 
-        private void Connect()
+        private async Task Connect()
         {
             if (!_connectionSettings.IsValid())
             {
@@ -77,14 +87,36 @@ namespace try_to_build_client.ViewModels
             try
             {
                 _connectionSettings.SaveSettings();
-                // After successful connection, navigate to the game page
-                /* When navigate from connectPage to gamePage,
-                 * the ContentControl in the MainWindow is updated with the new gamePage, 
-                 * but without a correct DataContext, the gamePage won't know which ViewModel to connect to. 
-                 * This results in the view model constructor not being called.*/
-                // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
-                var gameViewModel = new GameViewModel(_navigationAction);
-                _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });          
+                ConnectionStatus = "Connecting...";
+                await _tcpClientService.ConnectAsync(_connectionSettings.IpAddress, _connectionSettings.Port);
+                ConnectionStatus = "Connected Successfully!";
+
+                // send code 0 to start 
+                await _tcpClientService.SendDataAsync(null, 0);
+
+                ReceiveResult result = await _tcpClientService.StartReceivingAsync();
+                if (result != null)
+                {
+                    if (result.HeaderCode == 0)
+                    {
+                        // After successful connection, navigate to the game page
+                        /* When navigate from connectPage to gamePage,
+                         * the ContentControl in the MainWindow is updated with the new gamePage, 
+                         * but without a correct DataContext, the gamePage won't know which ViewModel to connect to. 
+                         * This results in the view model constructor not being called.*/
+                        // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
+                        var gameViewModel = new GameViewModel(_navigationAction, _tcpClientService);
+                        _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });
+                    }
+                    else
+                    {
+                        ConnectionStatus = "Header Code not valid";
+                    }
+                }
+                else
+                {
+                    ConnectionStatus = "No response from server.";
+                }
             }
             catch (Exception ex)
             {

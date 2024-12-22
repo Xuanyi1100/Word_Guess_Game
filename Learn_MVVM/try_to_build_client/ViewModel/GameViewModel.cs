@@ -10,6 +10,7 @@ using System.Windows;
 using try_to_build_client.Helpers;
 using try_to_build_client.Models;
 using System.Diagnostics;
+using System.Threading.Tasks;
 
 namespace try_to_build_client.ViewModels
 {
@@ -28,15 +29,25 @@ namespace try_to_build_client.ViewModels
         private int _remainingTime;
         private readonly Action<UserControl> _navigationAction;
         private GameData _gameData;
+        private TcpClientService _tcpClientService;
 
-        public GameViewModel(Action<UserControl> navigationAction)
+        public GameViewModel(Action<UserControl> navigationAction, TcpClientService tcpClientService)
         {
             _navigationAction = navigationAction;
-            SubmitGuessCommand = new RelayCommand(SubmitGuess);
+            SubmitGuessCommand = new RelayCommand(async () => await SubmitGuess());
             EndGameCommand = new RelayCommand(EndGame);
             _gameData = new GameData();
+            _tcpClientService = tcpClientService;
+            _tcpClientService.OnDataReceived += OnDataReceived;
             StartTimer();
         }
+
+        private void OnDataReceived(string message)
+        {
+            _gameData.CharacterString = message; // ??? need to split the message
+            Debug.WriteLine($"Message from server: {message}");
+        }
+
         public string TimerDisplay
         {
             get { return _timerDisplay; }
@@ -67,7 +78,7 @@ namespace try_to_build_client.ViewModels
         public ICommand SubmitGuessCommand { get; private set; }
         public ICommand EndGameCommand { get; private set; }
 
-        private void SubmitGuess()
+        private async Task SubmitGuess()
         {
             if (string.IsNullOrEmpty(GuessInput))
             {
@@ -75,6 +86,8 @@ namespace try_to_build_client.ViewModels
                 return;
             }
             GuessFeedback = "You guessed: " + GuessInput;
+            await _tcpClientService.SendDataAsync(GuessInput, 1);
+            await _tcpClientService.StartReceivingAsync();
             // Logic to check the guess
         }
         private void EndGame()
@@ -118,7 +131,8 @@ namespace try_to_build_client.ViewModels
                 MessageBoxResult result = MessageBox.Show("Time's Up! Game Over.", "Game Over", MessageBoxButton.OK);
                 if (result == MessageBoxResult.OK)
                 {
-                    Application.Current.Shutdown();
+                    var connectViewModel = new ConnectViewModel(_navigationAction);
+                    _navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
                 }
 
             }

@@ -4,13 +4,14 @@ using System.Runtime.CompilerServices;
 using System.Windows.Controls;
 using try_to_build_client.Views;
 using System;
+using try_to_build_client.Models;
 
 namespace try_to_build_client.ViewModels
 {
     public class MainViewModel : INotifyPropertyChanged
     {
         private UserControl _currentPage;
-
+        private TcpClientService _tcpClientService;
         public UserControl CurrentPage
         {
             get { return _currentPage; }
@@ -36,7 +37,7 @@ namespace try_to_build_client.ViewModels
         }
         private void NavigateToGamePage()
         {
-            var gameViewModel = new GameViewModel(Navigate);
+            var gameViewModel = new GameViewModel(Navigate, _tcpClientService);
             CurrentPage = new gamePage() { DataContext = gameViewModel };
         }
 

@@ -60,9 +60,13 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Helper\AppConfigManager.cs" />
+    <Compile Include="Helper\NetworkHelper.cs" />
+    <Compile Include="Helper\ReceiveResult.cs" />
     <Compile Include="Helper\RelayCommand.cs" />
     <Compile Include="Models\ConnectionSettings.cs" />
     <Compile Include="Models\GameData.cs" />
+    <Compile Include="Models\SendAndReceive.cs" />
+    <Compile Include="Models\TcpClientService.cs" />
     <Compile Include="ViewModel\ConnectViewModel.cs" />
     <Compile Include="ViewModel\GameViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
