@@ -14,7 +14,6 @@ namespace try_to_build_client.Models
         private TcpClient _client;
         private NetworkStream _stream;
         private readonly Encoding _encoding = Encoding.UTF8;
-        private SendAndReceive _sendAndReceive;
         public event Action<string> OnDataReceived;
         public event Action<string> OnConnectionError;
         public async Task ConnectAsync(string ipAddress, int port)
@@ -24,41 +23,80 @@ namespace try_to_build_client.Models
                 _client = new TcpClient();
                 await _client.ConnectAsync(ipAddress, port);
                 _stream = _client.GetStream();
-                _sendAndReceive = new SendAndReceive(_stream);
             }
             catch (Exception ex)
             {
                 OnConnectionError?.Invoke($"Connection error: {ex.Message}");
             }
         }
-        public async Task SendDataAsync(string message, int headerCode)
+        public async Task<bool> SendDataAsync(string message, int headerCode)
         {
             if (_client?.Connected != true || _stream == null)
             {
                 OnConnectionError?.Invoke("Not connected to server!");
-                return;
+                return false;
             }
             try
             {
-                await _sendAndReceive.SendAsync(message, headerCode);
+                byte[] data = message == null ? Array.Empty<byte>() : Encoding.ASCII.GetBytes(message);
+                Header header = new Header
+                {
+                    code = (byte)headerCode,
+                    length = data.Length
+                };
+
+                await _stream.WriteAsync(header.GetBytes(), 0, header.GetLength());
+                await _stream.WriteAsync(data, 0, data.Length);
+                return true;
             }
             catch (IOException ex)
             {
                 OnConnectionError?.Invoke($"IO error while sending data: {ex.Message}");
                 Disconnect();
+                return false;
             }
             catch (Exception ex)
             {
                 OnConnectionError?.Invoke($"Error while sending data: {ex.Message}");
                 Disconnect();
+                return false;
             }
         }
 
         public async Task<ReceiveResult> StartReceivingAsync()
         {
+            if (_client?.Connected != true || _stream == null)
+            {
+                OnConnectionError?.Invoke("Not connected to server!");
+                return null;
+            }
+
             try
             {
-                return await _sendAndReceive.ReceiveAsync();
+                Header header = new Header();
+                byte[] headerData = new byte[header.GetLength()];
+                if (await _stream.ReadAsync(headerData, 0, headerData.Length) != headerData.Length)
+                {
+                    Console.Error.WriteLine("Header invalid");
+                    return new ReceiveResult { Success = false, HeaderCode = -1, Message = null };
+                }
+
+                header.code = headerData[0];
+                int headerCode = header.code;
+
+                header.length = BitConverter.ToInt32(headerData, 1);
+                // if no message sent, just return the header code
+                if (header.length == 0)
+                    return new ReceiveResult { Success = true, HeaderCode = headerCode, Message = string.Empty };
+                // if there's message, pare message
+                byte[] messageData = new byte[header.length];
+
+                int count;
+                count = await _stream.ReadAsync(messageData, 0, messageData.Length);
+                // The Encoding.ASCII.GetBytes method expects a non-null string as input. If message is null ,
+                // it throws an ArgumentNullException, that's why we check (header.length == 0) first
+                string message = Encoding.ASCII.GetString(messageData, 0, count);
+                return new ReceiveResult { Success = true, HeaderCode = headerCode, Message = message };
             }
             catch (IOException ex)
             {

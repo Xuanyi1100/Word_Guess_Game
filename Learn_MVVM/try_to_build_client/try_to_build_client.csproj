@@ -65,7 +65,6 @@
     <Compile Include="Helper\RelayCommand.cs" />
     <Compile Include="Models\ConnectionSettings.cs" />
     <Compile Include="Models\GameData.cs" />
-    <Compile Include="Models\SendAndReceive.cs" />
     <Compile Include="Models\TcpClientService.cs" />
     <Compile Include="ViewModel\ConnectViewModel.cs" />
     <Compile Include="ViewModel\GameViewModel.cs" />
