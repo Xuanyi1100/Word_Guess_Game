@@ -1,4 +1,5 @@
 ﻿// Models/TcpClientService.cs
+using Newtonsoft.Json;
 using System;
 using System.IO;
 using System.Net.Sockets;
@@ -29,7 +30,7 @@ namespace try_to_build_client.Models
                 OnConnectionError?.Invoke($"Connection error: {ex.Message}");
             }
         }
-        public async Task<bool> SendDataAsync(string message, int headerCode)
+        public async Task<bool> SendDataAsync(ClientMessage message, int headerCode)
         {
             if (_client?.Connected != true || _stream == null)
             {
@@ -38,7 +39,8 @@ namespace try_to_build_client.Models
             }
             try
             {
-                byte[] data = message == null ? Array.Empty<byte>() : Encoding.ASCII.GetBytes(message);
+                string json = JsonConvert.SerializeObject(message);
+                byte[] data = string.IsNullOrEmpty(json) ? Array.Empty<byte>() : Encoding.ASCII.GetBytes(json);
                 Header header = new Header
                 {
                     code = (byte)headerCode,
@@ -78,16 +80,16 @@ namespace try_to_build_client.Models
                 if (await _stream.ReadAsync(headerData, 0, headerData.Length) != headerData.Length)
                 {
                     Console.Error.WriteLine("Header invalid");
-                    return new ReceiveResult { Success = false, HeaderCode = -1, Message = null };
+                    return new ReceiveResult { HeaderCode = -1, ServerMessage = null };
                 }
 
                 header.code = headerData[0];
                 int headerCode = header.code;
-
                 header.length = BitConverter.ToInt32(headerData, 1);
+
                 // if no message sent, just return the header code
                 if (header.length == 0)
-                    return new ReceiveResult { Success = true, HeaderCode = headerCode, Message = string.Empty };
+                    return new ReceiveResult {HeaderCode = headerCode, ServerMessage = null };
                 // if there's message, pare message
                 byte[] messageData = new byte[header.length];
 
@@ -95,8 +97,10 @@ namespace try_to_build_client.Models
                 count = await _stream.ReadAsync(messageData, 0, messageData.Length);
                 // The Encoding.ASCII.GetBytes method expects a non-null string as input. If message is null ,
                 // it throws an ArgumentNullException, that's why we check (header.length == 0) first
-                string message = Encoding.ASCII.GetString(messageData, 0, count);
-                return new ReceiveResult { Success = true, HeaderCode = headerCode, Message = message };
+                string json = Encoding.ASCII.GetString(messageData, 0, count);
+                ServerMessage serverMessage = JsonConvert.DeserializeObject<ServerMessage>(json);
+
+                return new ReceiveResult { HeaderCode = headerCode, ServerMessage = serverMessage };
             }
             catch (IOException ex)
             {

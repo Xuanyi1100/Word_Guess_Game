@@ -6,7 +6,7 @@
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
     <ProjectGuid>{088DB6A7-7612-4247-94DD-4E8D838CA471}</ProjectGuid>
     <OutputType>WinExe</OutputType>
-    <RootNamespace>try_to_build_client</RootNamespace>
+    <RootNamespace>client</RootNamespace>
     <AssemblyName>try_to_build_client</AssemblyName>
     <TargetFrameworkVersion>v4.8.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
@@ -35,6 +35,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="Newtonsoft.Json, Version=13.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.13.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
+    </Reference>
     <Reference Include="System" />
     <Reference Include="System.Configuration" />
     <Reference Include="System.Configuration.ConfigurationManager, Version=9.0.0.0, Culture=neutral, PublicKeyToken=cc7b13ffcd2ddd51, processorArchitecture=MSIL">
@@ -60,9 +63,11 @@
       <SubType>Designer</SubType>
     </ApplicationDefinition>
     <Compile Include="Helper\AppConfigManager.cs" />
+    <Compile Include="Helper\ClientMessage.cs" />
     <Compile Include="Helper\NetworkHelper.cs" />
     <Compile Include="Helper\ReceiveResult.cs" />
     <Compile Include="Helper\RelayCommand.cs" />
+    <Compile Include="Helper\ServerMessage.cs" />
     <Compile Include="Models\ConnectionSettings.cs" />
     <Compile Include="Models\GameData.cs" />
     <Compile Include="Models\TcpClientService.cs" />

@@ -5,6 +5,7 @@ using System.Windows.Controls;
 using try_to_build_client.Views;
 using System;
 using try_to_build_client.Models;
+using try_to_build_client.Helpers;
 
 namespace try_to_build_client.ViewModels
 {
@@ -12,6 +13,7 @@ namespace try_to_build_client.ViewModels
     {
         private UserControl _currentPage;
         private TcpClientService _tcpClientService;
+        private ServerMessage _serverMessage;
         public UserControl CurrentPage
         {
             get { return _currentPage; }
@@ -37,7 +39,7 @@ namespace try_to_build_client.ViewModels
         }
         private void NavigateToGamePage()
         {
-            var gameViewModel = new GameViewModel(Navigate, _tcpClientService);
+            var gameViewModel = new GameViewModel(Navigate, _tcpClientService, _serverMessage);
             CurrentPage = new gamePage() { DataContext = gameViewModel };
         }
 

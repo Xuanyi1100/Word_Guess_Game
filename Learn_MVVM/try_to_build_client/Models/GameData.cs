@@ -9,9 +9,10 @@ namespace try_to_build_client.Models
     // How to test the logic without triggering UI-related side effects??
     public class GameData : INotifyPropertyChanged
     {
-        private string _characterString = "Your 80-character string will appear here.";
+        private string _characterString = "";
         private int _totalWords;
         private int _wordsFound;
+        private string _sessionId;
         private List<string> _foundWords = new List<string>();
 
         public string CharacterString
@@ -28,6 +29,12 @@ namespace try_to_build_client.Models
         {
             get { return _wordsFound; }
             set { _wordsFound = value; OnPropertyChanged(); }
+        }
+        
+        public string SessionId
+        {
+            get { return _sessionId; }
+            set { _sessionId = value; OnPropertyChanged(); }
         }
 
         public event PropertyChangedEventHandler PropertyChanged;

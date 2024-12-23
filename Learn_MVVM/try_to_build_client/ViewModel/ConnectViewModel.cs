@@ -91,8 +91,14 @@ namespace try_to_build_client.ViewModels
                 await _tcpClientService.ConnectAsync(_connectionSettings.IpAddress, _connectionSettings.Port);
                 ConnectionStatus = "Connected Successfully!";
 
+                // filling the ClientMessage object for connect
+                ClientMessage clientMessage = new ClientMessage
+                {
+                    Username = _connectionSettings.Username,
+                    ClientPort = _connectionSettings.Port
+                };
                 // send code 0 to start 
-                await _tcpClientService.SendDataAsync(null, 0);
+                await _tcpClientService.SendDataAsync(clientMessage, 0);
 
                 ReceiveResult result = await _tcpClientService.StartReceivingAsync();
                 if (result != null)
@@ -105,7 +111,7 @@ namespace try_to_build_client.ViewModels
                          * but without a correct DataContext, the gamePage won't know which ViewModel to connect to. 
                          * This results in the view model constructor not being called.*/
                         // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
-                        var gameViewModel = new GameViewModel(_navigationAction, _tcpClientService);
+                        var gameViewModel = new GameViewModel(_navigationAction, _tcpClientService, result.ServerMessage);
                         _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });
                     }
                     else

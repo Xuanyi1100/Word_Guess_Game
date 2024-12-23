@@ -12,6 +12,7 @@ namespace try_to_build_client.Models
         private string _ipAddress;
         private int _port;
         private int _timeLimit;
+        
         public ConnectionSettings()
         {
             Username = AppConfigManager.GetSetting("Username");
@@ -44,6 +45,7 @@ namespace try_to_build_client.Models
             get { return _timeLimit; }
             set { _timeLimit = value; OnPropertyChanged(); }
         }
+  
 
         public bool IsValid()
         {

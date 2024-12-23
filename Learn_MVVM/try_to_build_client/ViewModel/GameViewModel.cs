@@ -31,21 +31,21 @@ namespace try_to_build_client.ViewModels
         private GameData _gameData;
         private TcpClientService _tcpClientService;
 
-        public GameViewModel(Action<UserControl> navigationAction, TcpClientService tcpClientService)
+        public GameViewModel(Action<UserControl> navigationAction, TcpClientService tcpClientService, ServerMessage serverMessage)
         {
             _navigationAction = navigationAction;
             SubmitGuessCommand = new RelayCommand(async () => await SubmitGuess());
             EndGameCommand = new RelayCommand(EndGame);
             _gameData = new GameData();
             _tcpClientService = tcpClientService;
-            _tcpClientService.OnDataReceived += OnDataReceived;
+            if (serverMessage != null)
+            {
+                _gameData.CharacterString = serverMessage.CharacterString;
+                _gameData.TotalWords = serverMessage.TotalWords;
+                _gameData.WordsFound = serverMessage.WordsFound;
+                _gameData.SessionId = serverMessage.SessionId;
+            }
             StartTimer();
-        }
-
-        private void OnDataReceived(string message)
-        {
-            _gameData.CharacterString = message; // ??? need to split the message
-            Debug.WriteLine($"Message from server: {message}");
         }
 
         public string TimerDisplay
@@ -86,9 +86,23 @@ namespace try_to_build_client.ViewModels
                 return;
             }
             GuessFeedback = "You guessed: " + GuessInput;
-            await _tcpClientService.SendDataAsync(GuessInput, 1);
-            await _tcpClientService.StartReceivingAsync();
-            // Logic to check the guess
+            ClientMessage clientMessage = new ClientMessage
+            {
+                UserGuess = GuessInput
+            };
+
+            // code 1, represent "Submit a Guess"
+            await _tcpClientService.SendDataAsync(clientMessage, 1);
+
+            ReceiveResult result = await _tcpClientService.StartReceivingAsync();
+            if (result?.ServerMessage != null)
+            {
+                _gameData.WordsFound = result.ServerMessage.WordsFound;
+            }
+            else
+            {
+                GuessFeedback = "Server does not send data";
+            }           
         }
         private void EndGame()
         {
