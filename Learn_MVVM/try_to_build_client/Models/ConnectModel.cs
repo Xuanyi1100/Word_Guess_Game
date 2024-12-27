@@ -6,14 +6,15 @@ using try_to_build_client.Helpers;
 
 namespace try_to_build_client.Models
 {
-    public class ConnectionSettings : INotifyPropertyChanged
+    public class ConnectModel : INotifyPropertyChanged
     {
         private string _username;
         private string _ipAddress;
         private int _port;
         private int _timeLimit;
-        
-        public ConnectionSettings()
+        private int _clientPort;
+
+        public ConnectModel()
         {
             Username = AppConfigManager.GetSetting("Username");
             IpAddress = AppConfigManager.GetSetting("IpAddress");
@@ -21,6 +22,8 @@ namespace try_to_build_client.Models
                 Port = port;
             if (int.TryParse(AppConfigManager.GetSetting("TimeLimit"), out int timeLimit))
                 TimeLimit = timeLimit;
+            if (int.TryParse(AppConfigManager.GetSetting("ClientPort"), out int clientport))
+                ClientPort = clientport;
         }
         public string Username
         {
@@ -39,7 +42,13 @@ namespace try_to_build_client.Models
             get { return _port; }
             set { _port = value; OnPropertyChanged(); }
         }
+        
 
+        public int ClientPort
+        {
+            get { return _clientPort; }
+            set { _clientPort = value; OnPropertyChanged(); }
+        }
         public int TimeLimit
         {
             get { return _timeLimit; }
@@ -62,6 +71,11 @@ namespace try_to_build_client.Models
             if (!IsValidPortNumber(Port))
             {
                 ValidationMessage = "Port number is not valid. range 1024-65535";
+                return false;
+            }
+            if (!IsValidClientPortNumber(ClientPort))
+            {
+                ValidationMessage = "Client Port number is not valid. range 1024-65535";
                 return false;
             }
             if (!IsValidTimeLimit(TimeLimit))
@@ -96,6 +110,12 @@ namespace try_to_build_client.Models
         {
             return port >= 1024 && port <= 65535;
         }
+
+        private bool IsValidClientPortNumber(int clientport)
+        {
+            return clientport >= 1024 && clientport <= 65535;
+        }
+
         private bool IsValidTimeLimit(int timeLimit)
         {
             return timeLimit > 0 && timeLimit < 600;
@@ -124,6 +144,7 @@ namespace try_to_build_client.Models
             AppConfigManager.SetSetting("IpAddress", IpAddress);
             AppConfigManager.SetSetting("Port", Port.ToString());
             AppConfigManager.SetSetting("TimeLimit", TimeLimit.ToString());
+            AppConfigManager.SetSetting("ClientPort", ClientPort.ToString());
         }
     }
 }

@@ -68,8 +68,8 @@
     <Compile Include="Helper\ReceiveResult.cs" />
     <Compile Include="Helper\RelayCommand.cs" />
     <Compile Include="Helper\ServerMessage.cs" />
-    <Compile Include="Models\ConnectionSettings.cs" />
-    <Compile Include="Models\GameData.cs" />
+    <Compile Include="Models\ConnectModel.cs" />
+    <Compile Include="Models\GameModel.cs" />
     <Compile Include="Models\TcpClientService.cs" />
     <Compile Include="ViewModel\ConnectViewModel.cs" />
     <Compile Include="ViewModel\GameViewModel.cs" />

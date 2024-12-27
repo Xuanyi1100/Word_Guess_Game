@@ -14,6 +14,7 @@ namespace try_to_build_client.ViewModels
         private UserControl _currentPage;
         private TcpClientService _tcpClientService;
         private ServerMessage _serverMessage;
+        private GameModel _gamedata;
         public UserControl CurrentPage
         {
             get { return _currentPage; }
@@ -39,7 +40,7 @@ namespace try_to_build_client.ViewModels
         }
         private void NavigateToGamePage()
         {
-            var gameViewModel = new GameViewModel(Navigate, _tcpClientService, _serverMessage);
+            var gameViewModel = new GameViewModel(Navigate, _serverMessage, _gamedata);
             CurrentPage = new gamePage() { DataContext = gameViewModel };
         }
 

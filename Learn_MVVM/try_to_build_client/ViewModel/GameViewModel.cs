@@ -20,30 +20,35 @@ namespace try_to_build_client.ViewModels
         private string _guessInput;
         private string _guessFeedback;
         private int _timeLimit;
-        // Why timer is here rather than in model:
-        // The DispatcherTimer is specifically designed to raise its Tick event on the UI thread.
-        // This makes it the perfect tool for updating UI-related data at regular intervals.
-        // Models are typically meant to be UI-agnostic, meaning they should not be tightly coupled with any particular UI framework.
-        // So, a DispatcherTimer which is tightly coupled with the UI, is not suitable in the model.
+        /*  
+         *  Why timer is here rather than in model:
+            The DispatcherTimer is specifically designed to raise its Tick event on the UI thread.
+            This makes it the perfect tool for updating UI-related data at regular intervals.
+            Models are typically meant to be UI-agnostic, meaning they should not be tightly coupled with 
+            any particular UI framework.
+            So, a DispatcherTimer which is tightly coupled with the UI, is not suitable in the model. 
+        *
+        */
         private DispatcherTimer _timer;
         private int _remainingTime;
         private readonly Action<UserControl> _navigationAction;
-        private GameData _gameData;
+        private GameModel _gameModel;
         private TcpClientService _tcpClientService;
 
-        public GameViewModel(Action<UserControl> navigationAction, TcpClientService tcpClientService, ServerMessage serverMessage)
+        public GameViewModel(Action<UserControl> navigationAction,  ServerMessage serverMessage, GameModel gamedata)
         {
             _navigationAction = navigationAction;
             SubmitGuessCommand = new RelayCommand(async () => await SubmitGuess());
             EndGameCommand = new RelayCommand(EndGame);
-            _gameData = new GameData();
-            _tcpClientService = tcpClientService;
+            _gameModel = gamedata;
+            _tcpClientService = new TcpClientService();
+
             if (serverMessage != null)
             {
-                _gameData.CharacterString = serverMessage.CharacterString;
-                _gameData.TotalWords = serverMessage.TotalWords;
-                _gameData.WordsFound = serverMessage.WordsFound;
-                _gameData.SessionId = serverMessage.SessionId;
+                _gameModel.CharacterString = serverMessage.CharacterString;
+                _gameModel.TotalWords = serverMessage.TotalWords;
+                _gameModel.WordsFound = serverMessage.WordsFound;
+                _gameModel.SessionId = serverMessage.SessionId;
             }
             StartTimer();
         }
@@ -55,15 +60,15 @@ namespace try_to_build_client.ViewModels
         }
         public string TotalWords
         {
-            get { return _gameData.TotalWords.ToString(); }
+            get { return _gameModel.TotalWords.ToString(); }
         }
         public string WordsFound
         {
-            get { return _gameData.WordsFound.ToString(); }
+            get { return _gameModel.WordsFound.ToString(); }
         }
         public string CharacterString
         {
-            get { return _gameData.CharacterString; }
+            get { return _gameModel.CharacterString; }
         }
         public string GuessInput
         {
@@ -78,18 +83,26 @@ namespace try_to_build_client.ViewModels
         public ICommand SubmitGuessCommand { get; private set; }
         public ICommand EndGameCommand { get; private set; }
 
+        
         private async Task SubmitGuess()
         {
-            if (string.IsNullOrEmpty(GuessInput))
+            // Input validation is now in model
+            if (!_gameModel.IsValidGuess(GuessInput))
             {
-                GuessFeedback = "Please input your guess";
+                GuessFeedback = _gameModel.GuessValidationMessage;
                 return;
             }
+
             GuessFeedback = "You guessed: " + GuessInput;
             ClientMessage clientMessage = new ClientMessage
             {
+                SessionId = _gameModel.SessionId,
+                Username = AppConfigManager.GetSetting("Username"),
                 UserGuess = GuessInput
             };
+
+            // connect again because it's a stateless connect model.
+            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
 
             // code 1, represent "Submit a Guess"
             await _tcpClientService.SendDataAsync(clientMessage, 1);
@@ -97,7 +110,7 @@ namespace try_to_build_client.ViewModels
             ReceiveResult result = await _tcpClientService.StartReceivingAsync();
             if (result?.ServerMessage != null)
             {
-                _gameData.WordsFound = result.ServerMessage.WordsFound;
+                _gameModel.WordsFound = result.ServerMessage.WordsFound;
             }
             else
             {

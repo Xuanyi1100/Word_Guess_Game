@@ -26,7 +26,7 @@
 
             <!-- Port Number Field -->
             <StackPanel Orientation="Horizontal" Margin="0,5">
-                <Label Content="Port Number:" Width="100" VerticalAlignment="Center"/>
+                <Label Content="Server Port:" Width="100" VerticalAlignment="Center"/>
                 <TextBox Name="portTextBox" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding Port}"/>
             </StackPanel>
 
@@ -34,6 +34,12 @@
             <StackPanel Orientation="Horizontal" Margin="0,5">
                 <Label Content="Time Limit (s):" Width="100" VerticalAlignment="Center"/>
                 <TextBox Name="timeLimitBox" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding TimeLimit}"/>
+            </StackPanel>
+
+            <!-- Client Port Number Field -->
+            <StackPanel Orientation="Horizontal" Margin="0,5">
+                <Label Content="Client Port:" Width="100" VerticalAlignment="Center"/>
+                <TextBox Name="clientPortTextBox" Width="180" HorizontalAlignment="Center" VerticalAlignment="Center" Text="{Binding ClientPort}"/>
             </StackPanel>
 
             <!-- Connect Button -->

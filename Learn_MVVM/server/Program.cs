@@ -1,4 +1,5 @@
-﻿using System;
+﻿// server/Program.cs
+using System;
 
 namespace server
 {
@@ -6,11 +7,13 @@ namespace server
     {
         static void Main(string[] args)
         {
-            TcpServer server = new TcpServer(1); // use header code = 1
-            server.Start();
-            Console.WriteLine("Press Enter to stop server");
+            Listener listener = new Listener();
+            listener.StartListening();
+
+            // stop server manually
+            Console.WriteLine("Input 'stop' to stop server:");
             Console.ReadLine();
-            server.Stop();
+
         }
     }
 }

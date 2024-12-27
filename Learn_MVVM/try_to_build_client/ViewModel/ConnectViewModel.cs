@@ -15,7 +15,7 @@ namespace try_to_build_client.ViewModels
     {
         private string _connectionStatus;
         private Action<UserControl> _navigationAction;
-        private ConnectionSettings _connectionSettings;
+        private ConnectModel _connectModel;
         private TcpClientService _tcpClientService;
 
         public ConnectViewModel(Action<UserControl> navigationAction)
@@ -23,7 +23,7 @@ namespace try_to_build_client.ViewModels
             _navigationAction = navigationAction;
 
             ConnectCommand = new RelayCommand(async () => await Connect());
-            _connectionSettings = new ConnectionSettings();
+            _connectModel = new ConnectModel();
             _tcpClientService = new TcpClientService();
             _tcpClientService.OnConnectionError += OnConnectionError;
         }
@@ -34,35 +34,48 @@ namespace try_to_build_client.ViewModels
 
         public string Username
         {
-            get { return _connectionSettings.Username; }
-            set { _connectionSettings.Username = value; OnPropertyChanged(); }
+            get { return _connectModel.Username; }
+            set { _connectModel.Username = value; OnPropertyChanged(); }
         }
 
         public string IpAddress
         {
-            get { return _connectionSettings.IpAddress; }
-            set { _connectionSettings.IpAddress = value; OnPropertyChanged(); }
+            get { return _connectModel.IpAddress; }
+            set { _connectModel.IpAddress = value; OnPropertyChanged(); }
         }
         public string Port
         {
-            get { return _connectionSettings.Port.ToString(); }
+            get { return _connectModel.Port.ToString(); }
             set
             {
                 if (int.TryParse(value, out var parsedPort))
                 {
-                    _connectionSettings.Port = parsedPort;
+                    _connectModel.Port = parsedPort;
+                    OnPropertyChanged();
+                }
+            }
+        }
+        // client port
+        public string ClientPort
+        {
+            get { return _connectModel.ClientPort.ToString(); }
+            set
+            {
+                if (int.TryParse(value, out var parsedClientPort))
+                {
+                    _connectModel.ClientPort = parsedClientPort;
                     OnPropertyChanged();
                 }
             }
         }
         public string TimeLimit
         {
-            get { return _connectionSettings.TimeLimit.ToString(); }
+            get { return _connectModel.TimeLimit.ToString(); }
             set
             {
                 if (int.TryParse(value, out var parsedTimeLimit))
                 {
-                    _connectionSettings.TimeLimit = parsedTimeLimit;
+                    _connectModel.TimeLimit = parsedTimeLimit;
                     OnPropertyChanged();
                 }
             }
@@ -78,24 +91,24 @@ namespace try_to_build_client.ViewModels
 
         private async Task Connect()
         {
-            if (!_connectionSettings.IsValid())
+            if (!_connectModel.IsValid())
             {
-                ConnectionStatus = _connectionSettings.ValidationMessage;
+                ConnectionStatus = _connectModel.ValidationMessage;
                 return;
             }
 
             try
             {
-                _connectionSettings.SaveSettings();
+                _connectModel.SaveSettings();
                 ConnectionStatus = "Connecting...";
-                await _tcpClientService.ConnectAsync(_connectionSettings.IpAddress, _connectionSettings.Port);
+                await _tcpClientService.ConnectAsync(_connectModel.IpAddress, _connectModel.Port);
                 ConnectionStatus = "Connected Successfully!";
 
                 // filling the ClientMessage object for connect
                 ClientMessage clientMessage = new ClientMessage
                 {
-                    Username = _connectionSettings.Username,
-                    ClientPort = _connectionSettings.Port
+                    Username = _connectModel.Username,
+                    ClientPort = _connectModel.ClientPort
                 };
                 // send code 0 to start 
                 await _tcpClientService.SendDataAsync(clientMessage, 0);
@@ -105,13 +118,21 @@ namespace try_to_build_client.ViewModels
                 {
                     if (result.HeaderCode == 0)
                     {
+                        // instaniate GameData here to hold IpAddress and port then pass to gameViewModel
+                        var gameData = new GameModel()
+                        {
+                            IpAddress = _connectModel.IpAddress,
+                            Port = _connectModel.Port
+                        };
+
+
                         // After successful connection, navigate to the game page
                         /* When navigate from connectPage to gamePage,
                          * the ContentControl in the MainWindow is updated with the new gamePage, 
                          * but without a correct DataContext, the gamePage won't know which ViewModel to connect to. 
                          * This results in the view model constructor not being called.*/
                         // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
-                        var gameViewModel = new GameViewModel(_navigationAction, _tcpClientService, result.ServerMessage);
+                        var gameViewModel = new GameViewModel(_navigationAction, result.ServerMessage, gameData);
                         _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });
                     }
                     else
