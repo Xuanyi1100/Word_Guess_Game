@@ -23,6 +23,8 @@
                 <Label Content="Total Words:"/>
                 <TextBlock x:Name="totalWordsDisplay" Text="{Binding TotalWords}" FontWeight="Bold" Margin="5,0" HorizontalAlignment="Center" VerticalAlignment="Center"/>
                 <Label Content="Words to Found:" VerticalAlignment="Center"/>
+                <!-- This binding tells WPF to observe changes in the WordsFound property of the GameViewModel and update the TextBlock's display whenever that property changes.-->
+                <!-- The magic of data binding combined with INotifyPropertyChanged is that UI elements update automatically whenever the underlying data source changes, without needing explicit code to tell the view to update its values.-->
                 <TextBlock x:Name="wordsFoundDisplay" Text="{Binding WordsFound}" FontWeight="Bold" Margin="5,0" VerticalAlignment="Center"/>
             </StackPanel>
 

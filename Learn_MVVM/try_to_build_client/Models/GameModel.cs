@@ -33,6 +33,7 @@ namespace try_to_build_client.Models
         {
             get { return _wordsFound; }
             set { _wordsFound = value; OnPropertyChanged(); }
+
         }
         
         public string SessionId

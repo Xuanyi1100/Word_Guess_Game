@@ -15,7 +15,9 @@ namespace server
         Game game = null;
 
         // Create a dictionary with string keys and Game values, use to store different games
-        Dictionary<string, Game> gameDict = new Dictionary<string, Game>();
+        // Made this dictionary static, so all client can access it, otherwise the lifecirle of gameDict is gone after one connection
+        private static Dictionary<string, Game> gameDict = new Dictionary<string, Game>();
+
         internal HandleClient(TcpClient client)
         {
             stream = client.GetStream();
@@ -25,7 +27,7 @@ namespace server
             clientMessage = receiveResult.ClientMessage;
 
             Console.WriteLine("Received Code: {0}", receiveResult.HeaderCode);
-            Console.WriteLine("Received Message: {0}", clientMessage);
+            Console.WriteLine("Received UserGuess: {0}\n", clientMessage.UserGuess);
 
             // handle SessionId
             string sessionId = null;
@@ -49,11 +51,11 @@ namespace server
             int responseHeaderCode = -1; // Fallback value for unexpected cases;          
             switch (receiveResult.HeaderCode)
             {
-                case 0x00:
+                case 0:
                     game.Start();
                     responseHeaderCode = 0;
                     break;
-                case 0x01:
+                case 1:
                     game.Guess(clientMessage.UserGuess);
                     responseHeaderCode = game.Found ? 1 : 2;
                     if (game.RemainNumberToGuess == 0)
@@ -61,18 +63,18 @@ namespace server
                         responseHeaderCode = 4;
                     }
                     break;
-                case 0x02:
+                case 2:
                     // user wants to quit, ask if they really want to quit
                     responseHeaderCode = 3;
                     break;
-                case 0x03:
+                case 3:
                     // User confirm quit, game ends, remove Game object
                     gameDict.Remove(sessionId);
                     break;
-                case 0x04:
+                case 4:
                     // User choose to go on, server do nothing
                     break;
-                case 0x05:
+                case 5:
                     // User wants to play again
                     game.Start();
                     responseHeaderCode = 0;
@@ -92,7 +94,12 @@ namespace server
             SendDataAsync(message, responseHeaderCode, client, stream);
 
             Console.WriteLine("Sent Code: {0}", responseHeaderCode);
-            Console.WriteLine("Sent Message: {0}", message);
+            Console.WriteLine($"Sent Message:\n " +
+                $"SessionId: {message.SessionId}\n " +
+                $"CharacterString: {message.CharacterString}\n " +
+                $"TotalWords: {message.TotalWords}\n " +
+                $"WordsFound: {message.WordsFound}\n\n");
+
 
             // close connection after each response.
             stream.Close();

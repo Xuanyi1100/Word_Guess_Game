@@ -20,6 +20,7 @@ namespace try_to_build_client.ViewModels
         private string _guessInput;
         private string _guessFeedback;
         private int _timeLimit;
+        //private string _wordsFound;
         /*  
          *  Why timer is here rather than in model:
             The DispatcherTimer is specifically designed to raise its Tick event on the UI thread.
@@ -39,7 +40,7 @@ namespace try_to_build_client.ViewModels
         {
             _navigationAction = navigationAction;
             SubmitGuessCommand = new RelayCommand(async () => await SubmitGuess());
-            EndGameCommand = new RelayCommand(EndGame);
+            EndGameCommand = new RelayCommand(async () => await EndGame());
             _gameModel = gamedata;
             _tcpClientService = new TcpClientService();
 
@@ -51,8 +52,18 @@ namespace try_to_build_client.ViewModels
                 _gameModel.SessionId = serverMessage.SessionId;
             }
             StartTimer();
+            //  subscribe to the GameModel's PropertyChanged event
+            _gameModel.PropertyChanged += GameModel_PropertyChanged;
         }
 
+        // When the model's WordsFound property changes, notify that the ViewModel's WordsFound property has changed 
+        private void GameModel_PropertyChanged(object sender, PropertyChangedEventArgs e)
+        {            
+            if (e.PropertyName == nameof(GameModel.WordsFound))
+            {
+                OnPropertyChanged(nameof(WordsFound));
+            }
+        }
         public string TimerDisplay
         {
             get { return _timerDisplay; }
@@ -65,6 +76,10 @@ namespace try_to_build_client.ViewModels
         public string WordsFound
         {
             get { return _gameModel.WordsFound.ToString(); }
+
+            // since it already in the model, you don't have to use setter to change it here,
+            // just change it in model and subscrib to the change event then change it here in viewmodel
+            //set { _wordsFound = value; OnPropertyChanged(); }
         }
         public string CharacterString
         {
@@ -110,26 +125,103 @@ namespace try_to_build_client.ViewModels
             ReceiveResult result = await _tcpClientService.StartReceivingAsync();
             if (result?.ServerMessage != null)
             {
+                // it's the "just change it in model" :
                 _gameModel.WordsFound = result.ServerMessage.WordsFound;
+
+                switch (result.HeaderCode)
+                {
+                    case 1:
+                        GuessFeedback = "Correct Guess, go ahead!";                    
+                        break;
+
+                    case 2:
+                        GuessFeedback = "Wrong Guess, try again.";
+                        break;
+
+                    case 4:
+                        _timer.Stop();
+                        MessageBoxResult messageResult1 = MessageBox.Show("You win! Do you want to play again?", "Congratulations", MessageBoxButton.YesNo, MessageBoxImage.Question);
+                        if (messageResult1 == MessageBoxResult.Yes)
+                        {
+                            // option1: go back to connect page
+                            // Don't forget connect to the view's viewmodel,
+                            // just "_navigationAction.Invoke(new connectPage());" won't work, no data will fill in
+                            //var connectViewModel = new ConnectViewModel(_navigationAction);
+                            //_navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
+
+                            // option2: stay in game page but start again, how ???
+                                // connect again and sent header code 2, expect code 3 ( ask user if want to quit)          
+
+                            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+
+                            await _tcpClientService.SendDataAsync(clientMessage, 0);
+
+                        }
+                        else
+                        {
+                            // Exit the application
+                            Application.Current.Shutdown();
+                        }
+                        break;
+                    default:
+                        GuessFeedback = "Unknown Response";
+                        break;
+                }
             }
             else
             {
                 GuessFeedback = "Server does not send data";
             }           
         }
-        private void EndGame()
+        private async Task EndGame()
         {
             _timer.Stop();
-            MessageBoxResult result = MessageBox.Show("Are you sure you want to quit?", "End Game", MessageBoxButton.YesNo);
-            if (result == MessageBoxResult.Yes)
+
+            // connect again and sent header code 2, expect code 3 ( ask user if want to quit)          
+            ClientMessage clientMessage = new ClientMessage
             {
-                var connectViewModel = new ConnectViewModel(_navigationAction);
-                _navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
+                SessionId = _gameModel.SessionId,
+            };
+
+            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+
+            await _tcpClientService.SendDataAsync(clientMessage, 2);
+
+            ReceiveResult result = await _tcpClientService.StartReceivingAsync();
+            if (result?.ServerMessage != null)
+            {
+                if(result.HeaderCode == 3)
+                {
+                    MessageBoxResult messageResult = MessageBox.Show("Do you want to quit?", "Exit Confirmation", MessageBoxButton.YesNo, MessageBoxImage.Question);
+
+                    if (messageResult == MessageBoxResult.Yes)
+                    {
+                        // inform the server user quit
+                        await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+
+                        await _tcpClientService.SendDataAsync(clientMessage, 3);
+
+                        Application.Current.Shutdown();
+                    }
+                    else
+                    {
+                        // inform the server user go on game
+                        await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+
+                        await _tcpClientService.SendDataAsync(clientMessage, 4);
+
+                        _timer.Start();
+                    }
+                }
+                else
+                {
+                    MessageBox.Show("Unknown Response");
+                }
             }
             else
             {
-                _timer.Start();
-            }
+                GuessFeedback = "Server does not send data";
+            }          
         }
         private void StartTimer()
         {
