@@ -123,7 +123,8 @@ namespace try_to_build_client.ViewModels
                         var gameData = new GameModel()
                         {
                             IpAddress = _connectModel.IpAddress,
-                            Port = _connectModel.Port
+                            Port = _connectModel.Port,
+                            ClientPort = _connectModel.ClientPort
                         };
 
                         

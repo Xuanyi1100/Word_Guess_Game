@@ -16,7 +16,7 @@ namespace server
 
         // Create a dictionary with string keys and Game values, use to store different games
         // Made this dictionary static, so all client can access it, otherwise the lifecirle of gameDict is gone after one connection
-        private static Dictionary<string, Game> gameDict = new Dictionary<string, Game>();
+        internal static Dictionary<string, Game> gameDict = new Dictionary<string, Game>();
 
         internal HandleClient(TcpClient client)
         {
@@ -76,7 +76,9 @@ namespace server
                     break;
                 case 5:
                     // User wants to play again
-                    game.Start();
+                    gameDict.Remove(sessionId);
+                    // no need to start here, client will connect again, will go to case 0
+                    //game.Start();
                     responseHeaderCode = 0;
                     break;
                 default:                   

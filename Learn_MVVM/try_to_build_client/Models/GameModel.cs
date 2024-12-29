@@ -18,6 +18,12 @@ namespace try_to_build_client.Models
         private string _ipAddress;
         private int _port;
         private string _guessValidationMessage;
+        private int _clientPort;
+        public int ClientPort
+        {
+            get { return _clientPort; }
+            set { _clientPort = value; OnPropertyChanged(); }
+        }
 
         public string CharacterString
         {

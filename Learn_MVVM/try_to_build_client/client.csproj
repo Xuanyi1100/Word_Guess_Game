@@ -71,6 +71,7 @@
     <Compile Include="Models\ConnectModel.cs" />
     <Compile Include="Models\GameModel.cs" />
     <Compile Include="Models\TcpClientService.cs" />
+    <Compile Include="Models\TcpServerListener.cs" />
     <Compile Include="ViewModel\ConnectViewModel.cs" />
     <Compile Include="ViewModel\GameViewModel.cs" />
     <Compile Include="ViewModel\MainViewModel.cs" />
