@@ -14,13 +14,12 @@ using System.Threading.Tasks;
 
 namespace try_to_build_client.ViewModels
 {
-    public class GameViewModel : INotifyPropertyChanged
+    public class GameViewModel : INotifyPropertyChanged, IDisposable
     {
         private string _timerDisplay = "00:00";
         private string _guessInput;
         private string _guessFeedback;
         private int _timeLimit;
-        //private string _wordsFound;
         /*  
          *  Why timer is here rather than in model:
             The DispatcherTimer is specifically designed to raise its Tick event on the UI thread.
@@ -35,6 +34,7 @@ namespace try_to_build_client.ViewModels
         private readonly Action<UserControl> _navigationAction;
         private GameModel _gameModel;
         private TcpClientService _tcpClientService;
+        private bool _disposed = false;
 
         public GameViewModel(Action<UserControl> navigationAction,  ServerMessage serverMessage, GameModel gamedata)
         {
@@ -53,6 +53,7 @@ namespace try_to_build_client.ViewModels
             }
             StartTimer();
             //  subscribe to the GameModel's PropertyChanged event
+            /* if your class subscribes to a event, you should also release the subscription when the class is not used anymore */
             _gameModel.PropertyChanged += GameModel_PropertyChanged;
         }
 
@@ -117,6 +118,13 @@ namespace try_to_build_client.ViewModels
             };
 
             // connect again because it's a stateless connect model.
+            /* stateless means :
+             * Client creates a new connection for each request
+             * Client sends data
+             * Client receives response
+             * Server closes the connection
+             * The cycle repeats for the next request
+             */
             await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
 
             // code 1, represent "Submit a Guess"
@@ -143,22 +151,21 @@ namespace try_to_build_client.ViewModels
                         MessageBoxResult messageResult1 = MessageBox.Show("You win! Do you want to play again?", "Congratulations", MessageBoxButton.YesNo, MessageBoxImage.Question);
                         if (messageResult1 == MessageBoxResult.Yes)
                         {
-                            // option1: go back to connect page
-                            // Don't forget connect to the view's viewmodel,
+                            // Dispose the current ViewModel
+                            this.Dispose();
+
+                            // Go back to connect page
+                            // Don't forget connect the view to the view's viewmodel,
                             // just "_navigationAction.Invoke(new connectPage());" won't work, no data will fill in
-                            //var connectViewModel = new ConnectViewModel(_navigationAction);
-                            //_navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
-
-                            // option2: stay in game page but start again, how ???
-                                // connect again and sent header code 2, expect code 3 ( ask user if want to quit)          
-
-                            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
-
-                            await _tcpClientService.SendDataAsync(clientMessage, 0);
+                            var connectViewModel = new ConnectViewModel(_navigationAction);
+                            _navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
 
                         }
                         else
                         {
+                            // Dispose the current ViewModel
+                            this.Dispose();
+
                             // Exit the application
                             Application.Current.Shutdown();
                         }
@@ -196,6 +203,9 @@ namespace try_to_build_client.ViewModels
 
                     if (messageResult == MessageBoxResult.Yes)
                     {
+                        // Dispose the current ViewModel
+                        this.Dispose();
+
                         // inform the server user quit
                         await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
 
@@ -250,6 +260,9 @@ namespace try_to_build_client.ViewModels
                 MessageBoxResult result = MessageBox.Show("Time's Up! Game Over.", "Game Over", MessageBoxButton.OK);
                 if (result == MessageBoxResult.OK)
                 {
+                    // Dispose the current ViewModel
+                    this.Dispose();
+
                     var connectViewModel = new ConnectViewModel(_navigationAction);
                     _navigationAction.Invoke(new connectPage() { DataContext = connectViewModel });
                 }
@@ -266,6 +279,42 @@ namespace try_to_build_client.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        // Implement IDisposable pattern
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+                    // Dispose managed resources
+                    _timer?.Stop();
+                    _timer = null;
+
+                    // Unsubscribe from events
+                    if (_gameModel != null)
+                    {
+                        _gameModel.PropertyChanged -= GameModel_PropertyChanged;
+                    }
+                }
+
+                // Clean up unmanaged resources (if any)
+
+                _disposed = true;
+            }
+        }
+
+        // Add finalizer only if there are unmanaged resources
+        ~GameViewModel()
+        {
+            Dispose(false);
         }
     }
 }

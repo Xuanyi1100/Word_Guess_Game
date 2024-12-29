@@ -14,7 +14,6 @@ namespace try_to_build_client.Models
     {
         private TcpClient _client;
         private NetworkStream _stream;
-        public event Action<string> OnDataReceived;
         public event Action<string> OnConnectionError;
         public async Task ConnectAsync(string ipAddress, int port)
         {

@@ -11,12 +11,13 @@ using try_to_build_client.Helpers;
 
 namespace try_to_build_client.ViewModels
 {
-    public class ConnectViewModel : INotifyPropertyChanged
+    public class ConnectViewModel : INotifyPropertyChanged, IDisposable
     {
         private string _connectionStatus;
         private Action<UserControl> _navigationAction;
         private ConnectModel _connectModel;
         private TcpClientService _tcpClientService;
+        private bool _disposed = false;
 
         public ConnectViewModel(Action<UserControl> navigationAction)
         {
@@ -125,7 +126,7 @@ namespace try_to_build_client.ViewModels
                             Port = _connectModel.Port
                         };
 
-
+                        
                         // After successful connection, navigate to the game page
                         /* When navigate from connectPage to gamePage,
                          * the ContentControl in the MainWindow is updated with the new gamePage, 
@@ -133,6 +134,7 @@ namespace try_to_build_client.ViewModels
                          * This results in the view model constructor not being called.*/
                         // So, make sure creates a new instance of gamePage and properly set's it's DataContext.
                         var gameViewModel = new GameViewModel(_navigationAction, result.ServerMessage, gameData);
+                        this.Dispose();
                         _navigationAction.Invoke(new gamePage() { DataContext = gameViewModel });
                     }
                     else
@@ -155,6 +157,33 @@ namespace try_to_build_client.ViewModels
         protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
+        // Implement IDisposable pattern
+        public void Dispose()
+        {
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        protected virtual void Dispose(bool disposing)
+        {
+            if (!_disposed)
+            {
+                if (disposing)
+                {
+
+                    // Unsubscribe from events
+                    if (_tcpClientService != null)
+                    {
+                        _tcpClientService.OnConnectionError -= OnConnectionError;
+                    }
+                }
+
+                // Clean up unmanaged resources (if any)
+
+                _disposed = true;
+            }
         }
     }
 }
