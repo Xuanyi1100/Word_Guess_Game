@@ -68,7 +68,7 @@ namespace try_to_build_client.ViewModels
         private void OnShutdownMessageReceived()
         {
             _timer.Stop();
-            MessageBoxResult result = MessageBox.Show("Server shut down!", "End Game", MessageBoxButton.OK);
+            MessageBoxResult result = MessageBox.Show(Application.Current.MainWindow, "Server shut down!", "End Game", MessageBoxButton.OK);
             if (result == MessageBoxResult.OK)
             {
                 // Dispose the current ViewModel
@@ -288,7 +288,7 @@ namespace try_to_build_client.ViewModels
             }
         }
 
-        private void Timer_Tick(object sender, EventArgs e)
+        private async void Timer_Tick(object sender, EventArgs e)
         {
             if (_remainingTime > 0)
             {
@@ -298,6 +298,16 @@ namespace try_to_build_client.ViewModels
             else
             {
                 _timer.Stop();
+                // tell server time out user lose, no need to hear response
+                ClientMessage clientMessage = new ClientMessage
+                {
+                    SessionId = _gameModel.SessionId,
+                };
+
+                await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+
+                await _tcpClientService.SendDataAsync(clientMessage, 6);
+
                 MessageBoxResult result = MessageBox.Show("Time's Up! Game Over.", "Game Over", MessageBoxButton.OK);
                 if (result == MessageBoxResult.OK)
                 {

@@ -3,11 +3,8 @@ using Newtonsoft.Json;
 using System.Net.Sockets;
 using System.Text;
 using server.Helper;
-using System.IO;
 using System.Net;
-using System.Data.Entity;
 using server.Models;
-using MySqlX.XDevAPI;
 
 namespace server
 {
@@ -145,7 +142,8 @@ namespace server
                                         GuessWord = clientMessage.UserGuess
                                     });
                                     session.WordsToFound--;
-                                    dbContext.SaveChanges();
+                                    dbContext.SaveChanges(); // update the database
+
                                     message.WordsToFound = session.WordsToFound;
                                     // check if win:
                                     if (session.WordsToFound == 0)
@@ -180,6 +178,9 @@ namespace server
                         break;
                     case 3:
                         // User confirm quit, game ends
+                        session.Status = "Quit";
+                        session.EndTime = DateTime.Now;
+                        dbContext.SaveChanges();
                         break;
                     case 4:
                         // User choose to go on, server do nothing
@@ -187,6 +188,13 @@ namespace server
                     case 5:
                         // User wants to play again
                         responseHeaderCode = 0;
+                        break;
+                    case 6:
+                        // time out user lose
+                        responseHeaderCode = 0;
+                        session.Status = "Lose";
+                        session.EndTime = DateTime.Now;
+                        dbContext.SaveChanges();
                         break;
                     default:
                         break;
@@ -296,28 +304,7 @@ namespace server
                 Console.Error.WriteLine($"Error while sending data: {ex.Message}");
                 return false;
             }
-        }
-
-        //internal void NotifyShutdown()
-        //{
-        //    try
-        //    {
-        //        TcpClient client = new TcpClient(ClientAddress, ClientPort);
-        //        NetworkStream netStream = client.GetStream();
-        //        Header header = new Header();
-        //        header.code = 0x05;
-        //        header.length = 0;
-
-        //        netStream.Write(header.GetBytes(), 0, header.GetLength());
-
-        //        netStream.Close();
-        //        client.Close();
-        //    }
-        //    catch (System.Exception ex)
-        //    {
-        //        Console.Error.WriteLine(ex);
-        //    }
-        //}
+        }     
 
     }
 }
