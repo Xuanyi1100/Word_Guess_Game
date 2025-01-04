@@ -23,10 +23,16 @@ namespace server
         public DbSet<GameSession> Sessions { get; set; }
         public DbSet<Guess> Guesses { get; set; }
         public DbSet<GameString> GameStrings { get; set; }
+
+        public DbSet<GameWord> GameWords { get; set; }
         public DbSet<SpeedRecord> SpeedRecords { get; set; }
 
-        //Configure model relationships and constraints
-        protected override void OnModelCreating(DbModelBuilder modelBuilder)
+        public DbSet<GameStringGameWord> GameStringGameWords { get; set; }
+        public DbSet<SessionGuessWord> SessionGuessWords { get; set; }
+        
+
+            //Configure model relationships and constraints
+            protected override void OnModelCreating(DbModelBuilder modelBuilder)
         {
             // Fluent API configurations can be added here if needed
             base.OnModelCreating(modelBuilder);

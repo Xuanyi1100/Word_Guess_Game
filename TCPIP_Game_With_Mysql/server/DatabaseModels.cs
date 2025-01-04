@@ -7,6 +7,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using MySqlX.XDevAPI;
 
 namespace server.Models
 {
@@ -33,12 +34,13 @@ namespace server.Models
         public virtual ICollection<SpeedRecord> SpeedRecords { get; set; }
     }
 
-    [Table("Session")]
+    [Table("GameSession")]
     public class GameSession
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int SessionID { get; set; }
+        public int GameSessionID { get; set; }
+        public string SessionID { get; set; }
 
         public int UserID { get; set; }
 
@@ -48,15 +50,15 @@ namespace server.Models
         public DateTime StartTime { get; set; }
         public DateTime? EndTime { get; set; }
 
-        [Required]
-        public string Status { get; set; }
+        public string Status { get; set; } // ENUM ('win', 'quit', 'lose', 'active')
 
         public int GameStringID { get; set; }
 
         [ForeignKey("GameStringID")]
         public virtual GameString GameString { get; set; }
 
-        public int WordsFound { get; set; }
+        public int WordsToFound { get; set; } // Renamed from WordsFound
+        public int TotalWords { get; set; }
 
         public virtual ICollection<Guess> Guesses { get; set; }
         public virtual ICollection<SpeedRecord> SpeedRecords { get; set; }
@@ -77,10 +79,10 @@ namespace server.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int GuessID { get; set; }
 
-        public int SessionID { get; set; }
+        public int GameSessionID { get; set; }
 
-        [ForeignKey("SessionID")]
-        public virtual GameSession Session { get; set; }
+        [ForeignKey("GameSessionID")]
+        public virtual GameSession GameSession { get; set; }
 
         [Required]
         [StringLength(255)]
@@ -131,10 +133,10 @@ namespace server.Models
         [ForeignKey("UserID")]
         public virtual User User { get; set; }
 
-        public int SessionID { get; set; }
+        public int GameSessionID { get; set; }
 
-        [ForeignKey("SessionID")]
-        public virtual GameSession Session { get; set; }
+        [ForeignKey("GameSessionID")]
+        public virtual GameSession GameSession { get; set; }
 
         public int TimeUse { get; set; }
 
@@ -151,16 +153,32 @@ namespace server.Models
     {
         [Key]
         [Column(Order = 1)]
-        public int GameWordID { get; set; }
-
-        [ForeignKey("GameWordID")]
-        public virtual GameWord GameWord { get; set; }
-
-        [Key]
-        [Column(Order = 2)]
         public int GameStringID { get; set; }
 
         [ForeignKey("GameStringID")]
         public virtual GameString GameString { get; set; }
+
+        [Key]
+        [Column(Order = 2)]
+      
+        public int GameWordID { get; set; }
+
+        [ForeignKey("GameWordID")]
+        public virtual GameWord GameWord { get; set; }
     }
+
+    [Table("SessionGuessWord")]
+    public class SessionGuessWord
+    {
+        [Key]
+        [Column(Order = 1)]
+        public int GameSessionID { get; set; }
+        
+        [ForeignKey("GameSessionID")]
+        public virtual GameSession GameSession { get; set; } 
+        public string GuessWord { get; set; }
+
+        
+    }
+
 }

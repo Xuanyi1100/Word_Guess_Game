@@ -50,7 +50,7 @@ namespace try_to_build_client.ViewModels
             {
                 _gameModel.CharacterString = serverMessage.CharacterString;
                 _gameModel.TotalWords = serverMessage.TotalWords;
-                _gameModel.WordsFound = serverMessage.WordsFound;
+                _gameModel.WordsFound = serverMessage.WordsToFound;
                 _gameModel.SessionId = serverMessage.SessionId;
             }
             StartTimer();
@@ -158,7 +158,7 @@ namespace try_to_build_client.ViewModels
                 if (result?.ServerMessage != null)
                 {
                     // it's the "just change it in model" :
-                    _gameModel.WordsFound = result.ServerMessage.WordsFound;
+                    _gameModel.WordsFound = result.ServerMessage.WordsToFound;
 
                     switch (result.HeaderCode)
                     {

@@ -32,7 +32,7 @@ namespace server
         private HashSet<string> answerSet = null;
         private HashSet<string> wordSet = null;
 
-        // find a random string, do it in folder first, later in database
+        // find a random string in database
         internal void Start () 
         {
             string[] files = Directory.GetFiles("gameStrings");

@@ -6,6 +6,6 @@ namespace try_to_build_client.Helpers
         public string SessionId { get; set; }
         public string CharacterString { get; set; }
         public int TotalWords { get; set; }
-        public int WordsFound { get; set; }
+        public int WordsToFound { get; set; }
     }
 }

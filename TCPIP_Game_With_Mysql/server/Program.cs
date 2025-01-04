@@ -22,11 +22,8 @@ namespace server
                 string command = Console.ReadLine();
                 if (command.ToLower() == "stop")
                 {
-                    // Access the static dictionary and notify all games
-                    foreach (var game in HandleClient.gameDict.Values)
-                    {
-                        game.NotifyShutdown();
-                    }
+                    // Access the user whose session Status is active and notify shut down
+
 
                     // shutdown server gracefully after notifying clients
                     cts.Cancel(); // Signal cancellation
@@ -43,5 +40,7 @@ namespace server
             }
 
         }
+
+
     }
 }

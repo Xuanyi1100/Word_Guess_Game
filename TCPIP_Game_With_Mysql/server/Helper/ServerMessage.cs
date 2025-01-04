@@ -8,6 +8,6 @@ namespace server.Helper
         public string SessionId { get; set; }
         public string CharacterString { get; set; }
         public int TotalWords { get; set; }
-        public int WordsFound { get; set; }
+        public int WordsToFound { get; set; }
     }
 }

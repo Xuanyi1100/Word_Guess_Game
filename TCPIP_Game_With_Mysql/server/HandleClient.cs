@@ -7,6 +7,7 @@ using System.IO;
 using System.Net;
 using System.Data.Entity;
 using server.Models;
+using MySqlX.XDevAPI;
 
 namespace server
 {
@@ -14,16 +15,14 @@ namespace server
     {
         private NetworkStream stream;
         new ReceiveResult receiveResult;
-        Game game = null;
-
-        // Create a dictionary with string keys and Game values, use to store different games
-        // Made this dictionary static, so all client can access it, otherwise the lifecirle of gameDict is gone after one connection
-        internal static Dictionary<string, Game> gameDict = new Dictionary<string, Game>();
 
         // Database context for persistent storage
         private GameDataContext dbContext;
         internal HandleClient(TcpClient client)
         {
+            // instantiate the object before attempting to access its properties
+            ServerMessage message = new ServerMessage();          
+
             // Initialize database context
             using (dbContext = new GameDataContext())
             {
@@ -36,27 +35,7 @@ namespace server
                 Console.WriteLine("Received Code: {0}", receiveResult.HeaderCode);
                 Console.WriteLine("Received UserGuess: {0}\n", clientMessage.UserGuess);
 
-                // handle SessionId
-                string sessionId = null;
-                if (clientMessage.SessionId == null)
-                {
-                    sessionId = Guid.NewGuid().ToString();
-                    game = new Game();
-                    gameDict.Add(sessionId, game);
-                }
-                else
-                {
-                    sessionId = clientMessage.SessionId;
-                    game = gameDict[sessionId];
-                }
-
-                // handle ClientPort, need delete after database ???
-                // pass ip and port data to Game, using for send shut down message to client
-                game.ClientAddress = (client.Client.RemoteEndPoint as IPEndPoint).Address.ToString();
-                game.ClientPort = clientMessage.ClientPort;
-
-                // handle User in database:
-                // Find or create user
+                // Step 1: Find or create user
                 var user = dbContext.Users.FirstOrDefault(u => u.UserName == clientMessage.Username)
                     ?? new User
                     {
@@ -64,7 +43,6 @@ namespace server
                         UserIP = (client.Client.RemoteEndPoint as IPEndPoint).Address.ToString(),
                         UserPort = clientMessage.ClientPort
                     };
-
                 // Save new user if not exists
                 if (user.UserID == 0)
                 {
@@ -72,52 +50,148 @@ namespace server
                     dbContext.SaveChanges();
                 }
 
-                // handle HeaderCode and pass UserGuess to Game
+                // Step 2: Find or create Session.
+                // ??? SessionID constrit not null?;
+                GameSession session = dbContext.Sessions.FirstOrDefault(u => u.SessionID == clientMessage.SessionId);
+                
+                if (session == null)    // if null, it's a new game, find a new gamestring
+                {
+                    // get GuessString from database, randomly
+                    var randomGameString = dbContext.Database
+                        .SqlQuery<GameString>("SELECT GameStringID, GameStringText FROM GameString ORDER BY RAND() LIMIT 1;")
+                        .FirstOrDefault();
+
+                    // sm wrong here ???
+
+
+                    // calculate TotalWords from database
+                    var gameWordCount = dbContext.GameStringGameWords
+                        .Join(dbContext.GameStrings,
+                            gsgw => gsgw.GameStringID,
+                            gs => gs.GameStringID,
+                            (gsgw, gs) => new { gsgw, gs })
+                        .Where(x => x.gs.GameStringText == randomGameString.GameStringText)
+                        .Count();
+
+                    message.CharacterString = randomGameString.GameStringText;
+                    message.TotalWords = gameWordCount;
+                    message.WordsToFound = gameWordCount;
+
+                    session = new GameSession
+                    {
+                        SessionID = Guid.NewGuid().ToString(),
+                        UserID = user.UserID, 
+                        Status = "active",
+                        GameStringID = randomGameString.GameStringID,
+                        WordsToFound = gameWordCount,
+                        TotalWords = gameWordCount
+                    };
+                    // Save new session
+                    dbContext.Sessions.Add(session);
+                    dbContext.SaveChanges();
+                }
+                else
+                {
+                    var gameString = dbContext.GameStrings
+                        .FirstOrDefault(gs => gs.GameStringID == session.GameStringID);
+                    message.CharacterString = gameString.GameStringText;
+                    message.TotalWords = session.TotalWords;
+                    message.WordsToFound = session.WordsToFound;
+                }
+
+                message.SessionId = session.SessionID;
+
+                // handle HeaderCode 
                 int responseHeaderCode = -1; // Fallback value for unexpected cases;          
                 switch (receiveResult.HeaderCode)
                 {
-                    case 0:
-                        game.Start();
+                    case 0:                       
                         responseHeaderCode = 0;
                         break;
                     case 1:
-                        game.Guess(clientMessage.UserGuess);
-                        responseHeaderCode = game.Found ? 1 : 2;
-                        if (game.RemainNumberToGuess == 0)
+                        // calculate WordsToFound from database
+                        int guessWordCount = dbContext.SessionGuessWords
+                            .Where(sgw => sgw.GameSessionID == session.GameSessionID).Count();
+
+                        // check if guess is in GameStringGameWord, and not in SessionGuessWord
+                        // if so, it's a right guess, then put it in SessionGuessWord
+                        // if not, it's a wrong guess
+                        // Check if the guess exists in GameStringGameWord
+
+                        // Step 1: Find the GameWordID for the guessed word
+                        var gameWordId = dbContext.GameWords
+                            .Where(gw => gw.GameWordText == clientMessage.UserGuess)
+                            .Select(gw => gw.GameWordID)
+                            .FirstOrDefault();
+
+                        if (gameWordId != 0)
                         {
-                            responseHeaderCode = 4;
+                            // Step 2: Check if the word is in GameStringGameWord for the current GameString
+                            var isWordInGameString = dbContext.GameStringGameWords
+                                .Any(gsgw => gsgw.GameStringID == session.GameStringID && gsgw.GameWordID == gameWordId);
+
+                            if (isWordInGameString)
+                            {
+                                // Step 3: Check if the word has already been guessed in this session
+                                var alreadyGuessed = dbContext.SessionGuessWords
+                                    .Any(sgw => sgw.GameSessionID == session.GameSessionID && sgw.GuessWord == clientMessage.UserGuess);
+
+                                if (!alreadyGuessed)
+                                {
+                                    // Step 4: Add the correct guess to SessionGuessWord
+                                    dbContext.SessionGuessWords.Add(new SessionGuessWord
+                                    {
+                                        GameSessionID = session.GameSessionID,
+                                        GuessWord = clientMessage.UserGuess
+                                    });
+                                    session.WordsToFound--;
+                                    dbContext.SaveChanges();
+                                    message.WordsToFound = session.WordsToFound;
+                                    // check if win:
+                                    if (session.WordsToFound == 0)
+                                    {
+                                        session.Status = "win";
+                                        session.EndTime = DateTime.Now;
+                                        dbContext.SaveChanges();
+                                        responseHeaderCode = 4; // User win
+                                        break;
+                                    }
+                                    responseHeaderCode = 1; // Correct guess
+                                }
+                                else
+                                {
+                                    responseHeaderCode = 2; // Wrong guess
+                                }
+                            }
+                            else
+                            {
+                                responseHeaderCode = 2; // Wrong guess
+                            }
                         }
+                        else
+                        {
+                            responseHeaderCode = 2; // Wrong guess
+                        }
+
                         break;
                     case 2:
                         // user wants to quit, ask if they really want to quit
                         responseHeaderCode = 3;
                         break;
                     case 3:
-                        // User confirm quit, game ends, remove Game object
-                        gameDict.Remove(sessionId);
+                        // User confirm quit, game ends
                         break;
                     case 4:
                         // User choose to go on, server do nothing
                         break;
                     case 5:
                         // User wants to play again
-                        gameDict.Remove(sessionId);
-                        // no need to start here, client will connect again, will go to case 0
-                        //game.Start();
                         responseHeaderCode = 0;
                         break;
                     default:
                         break;
                 }
-
-
-                // instantiate the object before attempting to access its properties
-                ServerMessage message = new ServerMessage();
-                // send data back
-                message.SessionId = sessionId;
-                message.CharacterString = game.GuessString;
-                message.TotalWords = game.TotalNumberToGuess;
-                message.WordsFound = game.RemainNumberToGuess;
+     
                 SendDataAsync(message, responseHeaderCode, client, stream);
 
                 Console.WriteLine("Sent Code: {0}", responseHeaderCode);
@@ -125,7 +199,7 @@ namespace server
                     $"SessionId: {message.SessionId}\n " +
                     $"CharacterString: {message.CharacterString}\n " +
                     $"TotalWords: {message.TotalWords}\n " +
-                    $"WordsFound: {message.WordsFound}\n\n");
+                    $"WordsFound: {message.WordsToFound}\n\n");
 
 
                 // close connection after each response.
@@ -223,6 +297,27 @@ namespace server
                 return false;
             }
         }
+
+        //internal void NotifyShutdown()
+        //{
+        //    try
+        //    {
+        //        TcpClient client = new TcpClient(ClientAddress, ClientPort);
+        //        NetworkStream netStream = client.GetStream();
+        //        Header header = new Header();
+        //        header.code = 0x05;
+        //        header.length = 0;
+
+        //        netStream.Write(header.GetBytes(), 0, header.GetLength());
+
+        //        netStream.Close();
+        //        client.Close();
+        //    }
+        //    catch (System.Exception ex)
+        //    {
+        //        Console.Error.WriteLine(ex);
+        //    }
+        //}
 
     }
 }
