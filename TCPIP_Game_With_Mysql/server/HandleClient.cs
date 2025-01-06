@@ -31,35 +31,31 @@ namespace server
 
                 Console.WriteLine("Received Code: {0}", receiveResult.HeaderCode);
                 Console.WriteLine("Received UserGuess: {0}\n", clientMessage.UserGuess);
-
-                // Step 1: Find or create user
-                var user = dbContext.Users.FirstOrDefault(u => u.UserName == clientMessage.Username)
-                    ?? new User
-                    {
-                        UserName = clientMessage.Username,
-                        UserIP = (client.Client.RemoteEndPoint as IPEndPoint).Address.ToString(),
-                        UserPort = clientMessage.ClientPort
-                    };
-                // Save new user if not exists
-                if (user.UserID == 0)
-                {
-                    dbContext.Users.Add(user);
-                    dbContext.SaveChanges();
-                }
-
+             
+                User user = dbContext.Users.FirstOrDefault(u => u.UserName == clientMessage.Username);
                 // Step 2: Find or create Session.
-                // ??? SessionID constrit not null?;
                 GameSession session = dbContext.Sessions.FirstOrDefault(u => u.SessionID == clientMessage.SessionId);
                 
                 if (session == null)    // if null, it's a new game, find a new gamestring
                 {
+                    // create user
+                    if(user == null)
+                    {
+                        user = new User
+                        {
+                            UserName = clientMessage.Username,
+                            UserIP = (client.Client.RemoteEndPoint as IPEndPoint).Address.ToString(),
+                            UserPort = clientMessage.ClientPort
+                        };
+                        dbContext.Users.Add(user);
+                        dbContext.SaveChanges();
+                    }
+                    
+
                     // get GuessString from database, randomly
                     var randomGameString = dbContext.Database
                         .SqlQuery<GameString>("SELECT GameStringID, GameStringText FROM GameString ORDER BY RAND() LIMIT 1;")
                         .FirstOrDefault();
-
-                    // sm wrong here ???
-
 
                     // calculate TotalWords from database
                     var gameWordCount = dbContext.GameStringGameWords

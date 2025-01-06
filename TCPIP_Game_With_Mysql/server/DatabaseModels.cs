@@ -18,12 +18,8 @@ namespace server.Models
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int UserID { get; set; }
 
-        [Required]
-        [StringLength(255)]
         public string UserName { get; set; }
 
-        [Required]
-        [StringLength(45)]
         public string UserIP { get; set; }
 
         public int UserPort { get; set; }
@@ -60,7 +56,6 @@ namespace server.Models
         public int WordsToFound { get; set; } // Renamed from WordsFound
         public int TotalWords { get; set; }
 
-        public virtual ICollection<Guess> Guesses { get; set; }
         public virtual ICollection<SpeedRecord> SpeedRecords { get; set; }
     }
 
@@ -72,27 +67,7 @@ namespace server.Models
         Active
     }
 
-    [Table("Guess")]
-    public class Guess
-    {
-        [Key]
-        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int GuessID { get; set; }
-
-        public int GameSessionID { get; set; }
-
-        [ForeignKey("GameSessionID")]
-        public virtual GameSession GameSession { get; set; }
-
-        [Required]
-        [StringLength(255)]
-        public string GuessText { get; set; }
-
-        public bool IsCorrect { get; set; }
-
-        public DateTime CreatedAt { get; set; } = DateTime.Now;
-    }
-
+   
     [Table("GameWord")]
     public class GameWord
     {
@@ -160,7 +135,7 @@ namespace server.Models
 
         [Key]
         [Column(Order = 2)]
-      
+       
         public int GameWordID { get; set; }
 
         [ForeignKey("GameWordID")]
@@ -171,7 +146,8 @@ namespace server.Models
     public class SessionGuessWord
     {
         [Key]
-        [Column(Order = 1)]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+        public int SessionGuessWordID { get; set; }
         public int GameSessionID { get; set; }
         
         [ForeignKey("GameSessionID")]

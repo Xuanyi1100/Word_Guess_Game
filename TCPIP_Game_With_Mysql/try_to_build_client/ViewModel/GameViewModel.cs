@@ -239,15 +239,27 @@ namespace try_to_build_client.ViewModels
 
                         if (messageResult == MessageBoxResult.Yes)
                         {
-                            // Dispose the current ViewModel
-                            this.Dispose();
 
-                            // inform the server user quit
-                            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+                            try
+                            {
+                                // Inform the server user quit
+                                await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+                                await _tcpClientService.SendDataAsync(clientMessage, 3);
+                            }
+                            catch (Exception ex)
+                            {
+                                // Handle exceptions if needed
+                                Console.WriteLine($"Error: {ex.Message}");
+                            }
+                            finally
+                            {
+                                // Dispose the current ViewModel
+                                this.Dispose();
 
-                            await _tcpClientService.SendDataAsync(clientMessage, 3);
+                                // Shutdown the application
+                                Application.Current.Shutdown();
+                            }
 
-                            Application.Current.Shutdown();
                         }
                         else
                         {

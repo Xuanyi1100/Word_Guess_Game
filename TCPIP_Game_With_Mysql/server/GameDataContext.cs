@@ -21,7 +21,6 @@ namespace server
         // Database set definitions
         public DbSet<User> Users { get; set; }
         public DbSet<GameSession> Sessions { get; set; }
-        public DbSet<Guess> Guesses { get; set; }
         public DbSet<GameString> GameStrings { get; set; }
 
         public DbSet<GameWord> GameWords { get; set; }
