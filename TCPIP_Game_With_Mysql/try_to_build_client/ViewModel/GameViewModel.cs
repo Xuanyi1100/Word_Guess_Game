@@ -239,17 +239,17 @@ namespace try_to_build_client.ViewModels
 
                         if (messageResult == MessageBoxResult.Yes)
                         {
-
+                            // Inform the server user quit
+                            await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
+                            
                             try
                             {
-                                // Inform the server user quit
-                                await _tcpClientService.ConnectAsync(_gameModel.IpAddress, _gameModel.Port);
                                 await _tcpClientService.SendDataAsync(clientMessage, 3);
                             }
                             catch (Exception ex)
                             {
                                 // Handle exceptions if needed
-                                Console.WriteLine($"Error: {ex.Message}");
+                                GuessFeedback = "Error sending 3 to server: " + ex.Message;
                             }
                             finally
                             {
@@ -257,7 +257,7 @@ namespace try_to_build_client.ViewModels
                                 this.Dispose();
 
                                 // Shutdown the application
-                                Application.Current.Shutdown();
+                                Application.Current.Dispatcher.InvokeShutdown();
                             }
 
                         }

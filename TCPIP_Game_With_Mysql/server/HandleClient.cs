@@ -33,7 +33,6 @@ namespace server
                 Console.WriteLine("Received UserGuess: {0}\n", clientMessage.UserGuess);
              
                 User user = dbContext.Users.FirstOrDefault(u => u.UserName == clientMessage.Username);
-                // Step 2: Find or create Session.
                 GameSession session = dbContext.Sessions.FirstOrDefault(u => u.SessionID == clientMessage.SessionId);
                 
                 if (session == null)    // if null, it's a new game, find a new gamestring
@@ -50,7 +49,7 @@ namespace server
                         dbContext.Users.Add(user);
                         dbContext.SaveChanges();
                     }
-                    
+
 
                     // get GuessString from database, randomly
                     var randomGameString = dbContext.Database
@@ -74,10 +73,11 @@ namespace server
                     {
                         SessionID = Guid.NewGuid().ToString(),
                         UserID = user.UserID, 
-                        Status = "active",
+                        Status = "active",   
                         GameStringID = randomGameString.GameStringID,
                         WordsToFound = gameWordCount,
-                        TotalWords = gameWordCount
+                        TotalWords = gameWordCount,
+                        StartTime = DateTime.Now
                     };
                     // Save new session
                     dbContext.Sessions.Add(session);

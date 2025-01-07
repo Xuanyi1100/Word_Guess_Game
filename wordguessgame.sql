@@ -4,9 +4,9 @@ use WordGuessGame;
 -- User Table
 CREATE TABLE User (
     UserID INT PRIMARY KEY AUTO_INCREMENT,
-    UserName VARCHAR(255) NOT NULL UNIQUE,
-    UserIP VARCHAR(45) NOT NULL,
-    UserPort INT NOT NULL,
+    UserName VARCHAR(255) UNIQUE,
+    UserIP VARCHAR(45) ,
+    UserPort INT ,
     CreatedAt DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
@@ -88,4 +88,19 @@ END$$
 
 DELIMITER ;
 
-SELECT GetRandomGameString();
+
+INSERT INTO GameString (GameStringText) VALUES
+('jumpsquicklyyza'),
+('zsilentawaters'),
+('wildsunflower');
+
+INSERT INTO GameWord (GameWordText) VALUES
+('jumps'), ('quick'),('quickly'), ('bright'),  ('silent'), ('waters'), ('wild'), ('sun'),
+('flower'), ('sunflower'),('water');
+
+INSERT INTO GameStringGameWord (GameStringID, GameWordID) VALUES
+(1,1), (1,2), (1,3),
+(2,5),(2,6),(2,11),
+(3,7), (3,8),(3,9),(3,10);
+
+

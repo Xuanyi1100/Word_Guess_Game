@@ -37,6 +37,10 @@ This repository contains the source code for a word guessing game application bu
 - mysql DDL
 - Entity Relationship Diagram
 
+## How to run
+
+1. For version without mysql, put "gameStrings"folder in server executable file folder, then run server and client.
+2. For version with mysql, set up mysql server, run ddlthen run server and client.
 
 ## Project Structure
 
